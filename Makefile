@@ -31,7 +31,9 @@ AVRDUDE = avrdude $(PROGRAMMER) -p $(AVR_DEVICE)
 COMPILE = avr-gcc -Wall -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
 
 # symbolic targets:
-all:	main.hex
+all:	main.hex size flash
+
+build: main.hex
 
 .c.o:
 	$(COMPILE) -c $< -o $@
@@ -46,7 +48,10 @@ all:	main.hex
 .c.s:
 	$(COMPILE) -S $< -o $@
 
-flash:	all
+size: main.elf
+	avr-size --format=avr --mcu=$(DEVICE) main.elf
+
+flash:	main.hex
 	$(AVRDUDE) -U flash:w:main.hex:i
 
 fuse:
@@ -69,7 +74,6 @@ main.elf: $(OBJECTS)
 main.hex: main.elf
 	rm -f main.hex
 	avr-objcopy -j .text -j .data -O ihex main.elf main.hex
-	avr-size --format=avr --mcu=$(DEVICE) main.elf
 # If you have an EEPROM section, you must also create a hex file for the
 # EEPROM and add it to the "flash" target.
 
