@@ -17,7 +17,8 @@
 #                   default_serial = "avrdoper"
 # FUSES ........ Parameters for avrdude to flash the fuses appropriately.
 
-DEVICE     = attiny84
+DEVICE     = attiny84a
+AVR_DEVICE = t84
 CLOCK      = 8000000
 PROGRAMMER = -c usbtiny -B 250 #-c stk500v2 -P avrdoper
 OBJECTS    = main.o
@@ -26,7 +27,7 @@ FUSES      = -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m # -U efuse:w:0xff:m
 
 # Tune the lines below only if you know what you are doing:
 
-AVRDUDE = avrdude $(PROGRAMMER) -p $(DEVICE)
+AVRDUDE = avrdude $(PROGRAMMER) -p $(AVR_DEVICE)
 COMPILE = avr-gcc -Wall -Os -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
 
 # symbolic targets:
