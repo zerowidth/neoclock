@@ -5,7 +5,7 @@
 
 #define SOFTUART_BAUD_RATE      2400
 
-#if defined (__AVR_ATtiny25__) || defined (__AVR_ATtiny45__) || defined (__AVR_ATtiny85__)
+#if defined (__AVR_ATtiny25__) || defined (__AVR_ATtiny45__) || defined (__AVR_ATtiny85__) || defined (__AVR_ATtiny84A__)
     #define SOFTUART_RXPIN   PINB
     #define SOFTUART_RXDDR   DDRB
     #define SOFTUART_RXBIT   PB0
@@ -19,7 +19,7 @@
     #define SOFTUART_T_CONTR_REGA      TCCR0A
     #define SOFTUART_T_CONTR_REGB      TCCR0B
     #define SOFTUART_T_CNT_REG         TCNT0
-    #define SOFTUART_T_INTCTL_REG      TIMSK
+    #define SOFTUART_T_INTCTL_REG      TIMSK0
 
     #define SOFTUART_CMPINT_EN_MASK    (1 << OCIE0A)
 

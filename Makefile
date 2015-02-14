@@ -21,7 +21,7 @@ DEVICE     = attiny84a
 AVR_DEVICE = t84
 CLOCK      = 8000000
 PROGRAMMER = -c usbtiny -B 250 #-c stk500v2 -P avrdoper
-OBJECTS    = main.o
+OBJECTS    = main.o softuart.o
 # 0xe2 for internal 8MHz clock, 0x62 for internal 1MHz:
 FUSES      = -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m # -U efuse:w:0xff:m
 
