@@ -12,7 +12,7 @@ OBJECTS    = main.o softuart.o
 FUSES      = -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m # -U efuse:w:0xff:m
 
 AVRDUDE = avrdude $(PROGRAMMER) -p $(AVR_DEVICE)
-COMPILE = avr-gcc -Wall -Os -flto -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
+COMPILE = avr-gcc -Wall -MMD -Os -flto -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
 
 all:	build size
 
@@ -20,18 +20,8 @@ run:	build size flash
 
 build:	main.hex
 
-%.o: %.c %.h
+%.o: %.c
 	$(COMPILE) -c $< -o $@
-
-.S.o:
-	$(COMPILE) -x assembler-with-cpp -c $< -o $@
-	# "-x assembler-with-cpp" should not be necessary since this is the default
-	# file type for the .S (with capital S) extension. However, upper case
-	# characters are not always preserved on Windows. To ensure WinAVR
-	# compatibility define the file type manually.
-
-.c.s:
-	$(COMPILE) -S $< -o $@
 
 size:	main.elf
 	avr-size --format=avr --mcu=$(DEVICE) main.elf
@@ -50,7 +40,7 @@ load: all
 	bootloadHID main.hex
 
 clean:
-	rm -f main.hex main.elf $(OBJECTS)
+	rm -f main.hex main.elf $(OBJECTS) *.d
 
 # file targets:
 main.elf: $(OBJECTS)
@@ -66,5 +56,4 @@ main.hex: main.elf
 disasm:	main.elf
 	avr-objdump -d main.elf
 
-cpp:
-	$(COMPILE) -E main.c
+include $(wildcard *.d)

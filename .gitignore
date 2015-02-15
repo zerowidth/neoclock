@@ -2,3 +2,4 @@ tags
 main.hex
 *.o
 *.elf
+*.d
