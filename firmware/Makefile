@@ -1,7 +1,7 @@
 # Name: Makefile
-# Author: Nathan Witmer <nathan@zerowidth.com>
+# Author: Nathan Witmer
 # Copyright: 2015 Nathan Witmer
-# License: MIT
+# License: MIT (see LICENSE)
 
 DEVICE     = attiny84a
 AVR_DEVICE = t84

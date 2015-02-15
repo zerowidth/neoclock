@@ -1,7 +1,7 @@
 /* Name: main.c
  * Author: Nathan Witmer
  * Copyright: 2015 Nathan Witmer
- * License: MIT
+ * License: MIT (see LICENSE)
  */
 
 #include <avr/io.h>
