@@ -11,6 +11,10 @@
 #include <avr/pgmspace.h>
 #include "softuart.h"
 
+#define PWM_DDR OC1B_DDR
+#define PWM_BIT OC1B_BIT
+#define PWM_COM_BIT COM1B1
+#define PWM_REGISTER OCR1B
 #define DELAY 10
 
 void check_serial()
@@ -35,19 +39,20 @@ int main(void)
 
   softuart_puts_P( "\r\nready.\r\n" );
 
-  OC1A_DDR |= _BV(OC1A_BIT);
-  TCCR1A   |= _BV(COM1A1) | _BV(WGM10);
-  TCCR1B   |= _BV(CS10)   | _BV(WGM12);
-  OCR1A = 0;
+  PWM_DDR |= _BV(PWM_BIT);
+  TCCR1A   |= _BV(PWM_COM_BIT) | _BV(WGM10);
+  TCCR1B   |= _BV(CS10) | _BV(WGM12);
+  PWM_REGISTER = 0;
+
   while(1) {
-    while(OCR1A < 128) {
+    while(PWM_REGISTER < 128) {
       check_serial();
-      OCR1A++;
+      PWM_REGISTER++;
       _delay_ms(DELAY);
     }
-    while(OCR1A > 0) {
+    while(PWM_REGISTER > 0) {
       check_serial();
-      OCR1A--;
+      PWM_REGISTER--;
       _delay_ms(DELAY);
     }
   }
