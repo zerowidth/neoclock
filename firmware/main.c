@@ -6,7 +6,6 @@
 
 #include <avr/io.h>
 #include <util/delay.h>
-
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include <stdlib.h> /* for itoa */
@@ -46,6 +45,26 @@ void zero() {
   sei();
 }
 
+void write_pixels(uint8_t byte) {
+  asm volatile(
+      "1:"
+      "sbrc %[byte], 7" "\n\t"
+      "inc %[xxx]"      "\n\t"
+      "inc %[yyy]"      "\n\t"
+      "lsl %[byte]"     "\n\t"
+      "dec %[bits]"     "\n\t"
+      "brne 1b"         "\n\t"
+      /* output registers */
+      : [xxx] "=d" (xxx)
+      , [yyy] "=d" (yyy)
+      /* input registers */
+      : [byte] "d" (byte)
+      , [bits] "r" (8)
+      , "0" (xxx)
+      , "1" (yyy)
+      );
+}
+
 int main(void)
 {
   PIXEL_DDR |= _BV(PIXEL_BIT);
@@ -55,5 +74,21 @@ int main(void)
 
   softuart_puts_P( "\r\nready.\r\n" );
 
+  char *buf = "xxxxxxxx";
+
+
+  xxx = yyy = 0;
+  /* _delay_ms(50); */
+  write_pixels(1);
+  /* _delay_ms(50); */
+  itoa(xxx, buf, 10);
+  softuart_puts(buf);
+  softuart_putchar(' ');
+  itoa(yyy, buf, 10);
+  softuart_puts(buf);
+  softuart_putchar('\r');
+  softuart_putchar('\n');
+
+  _delay_ms(1000);
   return 0;
 }
