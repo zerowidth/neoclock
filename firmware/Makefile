@@ -54,6 +54,6 @@ main.hex: main.elf
 
 # Targets for code debugging and analysis:
 disasm:	main.elf
-	avr-objdump -d main.elf
+	avr-objdump -l -S -d main.elf | pygmentize -l c-objdump
 
 include $(wildcard *.d)
