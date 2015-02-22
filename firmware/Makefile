@@ -23,6 +23,9 @@ build:	main.hex
 %.o: %.c
 	$(COMPILE) -c $< -o $@
 
+%.s: %.c
+	$(COMPILE) -S $< -o $@
+
 size:	main.elf
 	avr-size --format=avr --mcu=$(DEVICE) main.elf
 
