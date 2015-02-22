@@ -12,7 +12,7 @@ OBJECTS    = main.o softuart.o
 FUSES      = -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m # -U efuse:w:0xff:m
 
 AVRDUDE = avrdude $(PROGRAMMER) -p $(AVR_DEVICE)
-COMPILE = avr-gcc -Wall -MMD -Os -flto -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
+COMPILE = avr-gcc -Wall -MMD -Os -g -flto -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
 
 all:	build size
 
