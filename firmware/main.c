@@ -8,7 +8,6 @@
 #include <util/delay.h>
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
-#include <stdlib.h> /* for itoa */
 #include "softuart.h"
 
 #define PWM_DDR OC1B_DDR
@@ -22,7 +21,6 @@
 #define PIXEL_BIT   PORTA0 // Bit of the pin the pixels are connected to
 
 static uint8_t grb[PIXELS*3];
-static uint8_t xxx, yyy;
 
 void set_pixel(uint8_t i, uint8_t r, uint8_t g, uint8_t b)
 {
@@ -57,7 +55,6 @@ void write_pixels(uint8_t pixels) {
   asm volatile(
       "1:"                    "\n\t" /* outer loop: iterate bytes */
       "ld %[byte], %a[grb]+"  "\n\t"
-      "inc %[yyy]"            "\n\t"
       "ldi %[bits], 8"        "\n\t"
       "2:"                    "\n\t" /* inner loop: write a byte */
       "sbi %[port], %[pin]"   "\n\t" /* t = 0 */
@@ -70,19 +67,12 @@ void write_pixels(uint8_t pixels) {
       "brne 2b"               "\n\t" /* 2c if skip, 1c if not */
       "dec %[nbytes]"         "\n\t"
       "brne 1b"               "\n\t"
-      /* debug output */
-      : [xxx] "=d" (xxx)
-      , [yyy] "=d" (yyy)
-      /* input registers */
-      : [nbytes]  "d" (pixels * 3)  /* how many pixels to write */
-      , [grb]     "w" (grb)         /* pointer to grb byte array */
-      , [byte]    "r" (0)
-      , [bits]    "r" (8)
-      , [port]    "i" (_SFR_IO_ADDR(PIXEL_PORT))
-      , [pin]     "i" (PIXEL_BIT)
-      /* debug values */
-      , "0" (xxx)
-      , "1" (yyy)
+      :: [nbytes]  "d" (pixels * 3)  /* how many pixels to write */
+      ,  [grb]     "w" (grb)         /* pointer to grb byte array */
+      ,  [byte]    "r" (0)
+      ,  [bits]    "r" (8)
+      ,  [port]    "i" (_SFR_IO_ADDR(PIXEL_PORT))
+      ,  [pin]     "i" (PIXEL_BIT)
       );
   sei();
 }
@@ -97,31 +87,12 @@ int main(void)
   softuart_puts_P( "\r\nready.\r\n" );
 
   uint8_t i;
-  for(i = 0; i<16; i++) {
     set_pixel(i, (i + 1) << 2, (i + 1), 0);
+  for(i = 0; i<PIXELS; i++) {
   }
 
-  char *buf = "xxxxxxxx";
-
-  xxx = yyy = 0;
   _delay_ms(50);
   write_pixels(PIXELS);
-  _delay_ms(50);
-  itoa(xxx, buf, 10);
-  softuart_puts(buf);
-  softuart_putchar(' ');
-  itoa(yyy, buf, 10);
-  softuart_puts(buf);
-  softuart_putchar('\r');
-  softuart_putchar('\n');
-  for (i=0; i<6; i++) {
-    itoa(grb[i], buf, 2);
-    softuart_puts(buf);
-    softuart_putchar('\r');
-    softuart_putchar('\n');
-  }
-  softuart_putchar('\r');
-  softuart_putchar('\n');
 
   return 0;
 }
