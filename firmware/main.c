@@ -15,7 +15,7 @@
 #define PWM_COM_BIT COM1B1
 #define PWM_REGISTER OCR1B
 
-#define PIXELS 16
+#define PIXELS 60
 #define PIXEL_PORT  PORTA  // Port of the pin the pixels are connected to
 #define PIXEL_DDR   DDRA   // Port of the pin the pixels are connected to
 #define PIXEL_BIT   PORTA0 // Bit of the pin the pixels are connected to
@@ -87,8 +87,8 @@ int main(void)
   softuart_puts_P( "\r\nready.\r\n" );
 
   uint8_t i;
-    set_pixel(i, (i + 1) << 2, (i + 1), 0);
   for(i = 0; i<PIXELS; i++) {
+    set_pixel(i, (i + 1) , (i + 1) >> 2, 0);
   }
 
   _delay_ms(50);
