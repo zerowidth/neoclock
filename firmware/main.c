@@ -74,6 +74,7 @@ void write_pixels(uint8_t pixels) {
       ,  [port]    "i" (_SFR_IO_ADDR(PIXEL_PORT))
       ,  [pin]     "i" (PIXEL_BIT)
       );
+  _delay_us(10);
   sei();
 }
 
@@ -85,14 +86,21 @@ int main(void)
   sei();
 
   softuart_puts_P( "\r\nready.\r\n" );
-
-  uint8_t i;
-  for(i = 0; i<PIXELS; i++) {
-    set_pixel(i, (i + 1) , (i + 1) >> 2, 0);
-  }
-
   _delay_ms(50);
-  write_pixels(PIXELS);
+
+  uint8_t i, j, k;
+
+  for(;;) {
+    for(j = 0; j < PIXELS; j++) {
+      for(i = 0; i < PIXELS; i++) {
+        k = (i + j) % PIXELS;
+        set_pixel(k, (i + 1) , (i + 1) >> 2, 0);
+      }
+      write_pixels(PIXELS);
+      _delay_ms(15);
+    }
+
+  }
 
   return 0;
 }
