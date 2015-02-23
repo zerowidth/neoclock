@@ -33,15 +33,13 @@ void set_pixel(uint8_t i, uint8_t r, uint8_t g, uint8_t b)
 }
 
 void zero() {
-  uint8_t i;
+  uint16_t i;
   cli();
-  for(i=0; i < 96; i++) {
+  for(i=0; i < (PIXELS * 3 * 8); i++) {
     asm volatile(
         "sbi %[port], %[pin]" "\n\t"
         "nop"                 "\n\t"
         "cbi %[port], %[pin]" "\n\t"
-        "nop"                 "\n\t"
-        "nop"                 "\n\t"
         "nop"                 "\n\t"
         "nop"                 "\n\t"
         "nop"                 "\n\t"
@@ -60,23 +58,29 @@ void write_pixels(uint8_t pixels) {
       "1:"                    "\n\t" /* outer loop: iterate bytes */
       "ld %[byte], %a[grb]+"  "\n\t"
       "inc %[yyy]"            "\n\t"
-      "ldi %[bits], 8"         "\n\t"
+      "ldi %[bits], 8"        "\n\t"
       "2:"                    "\n\t" /* inner loop: write a byte */
-      "sbrc %[byte], 7"       "\n\t"
-      "inc %[xxx]"            "\n\t"
-      "lsl %[byte]"           "\n\t"
-      "dec %[bits]"           "\n\t"
-      "brne 2b"               "\n\t"
+      "sbi %[port], %[pin]"   "\n\t" /* t = 0 */
+      "sbrs %[byte], 7"       "\n\t" /* 2c if skip, 1c if no skip */
+      "cbi %[port], %[pin]"   "\n\t" /* 2c, t1 = 375ns */
+      "lsl %[byte]"           "\n\t" /* 1c, t = 500 (0) / 375 (1) */
+      "dec %[bits]"           "\n\t" /* 1c, t = 625 (0) / 500 (1) */
+      "nop"                   "\n\t" /* 1c, t = 750 (0) / 625 (1) */
+      "cbi %[port], %[pin]"   "\n\t" /* 2c, t2= 875 (0) / 750 (1) */
+      "brne 2b"               "\n\t" /* 2c if skip, 1c if not */
       "dec %[nbytes]"         "\n\t"
       "brne 1b"               "\n\t"
-      /* output registers */
+      /* debug output */
       : [xxx] "=d" (xxx)
       , [yyy] "=d" (yyy)
       /* input registers */
-      : [nbytes]  "d" (pixels * 3) /* how many pixels to write */
-      , [grb]     "w" (grb) /* pointer to grb byte array */
-      , [byte]    "r" (grb[0]) /* pointer to grb byte array */
+      : [nbytes]  "d" (pixels * 3)  /* how many pixels to write */
+      , [grb]     "w" (grb)         /* pointer to grb byte array */
+      , [byte]    "r" (0)
       , [bits]    "r" (8)
+      , [port]    "i" (_SFR_IO_ADDR(PIXEL_PORT))
+      , [pin]     "i" (PIXEL_BIT)
+      /* debug values */
       , "0" (xxx)
       , "1" (yyy)
       );
@@ -92,14 +96,16 @@ int main(void)
 
   softuart_puts_P( "\r\nready.\r\n" );
 
-  set_pixel(0, 0, 1, 0);
-  set_pixel(1, 0, 0, 1);
+  uint8_t i;
+  for(i = 0; i<16; i++) {
+    set_pixel(i, (i + 1) << 2, (i + 1), 0);
+  }
 
   char *buf = "xxxxxxxx";
 
   xxx = yyy = 0;
   _delay_ms(50);
-  write_pixels(2);
+  write_pixels(PIXELS);
   _delay_ms(50);
   itoa(xxx, buf, 10);
   softuart_puts(buf);
@@ -108,7 +114,6 @@ int main(void)
   softuart_puts(buf);
   softuart_putchar('\r');
   softuart_putchar('\n');
-  uint8_t i;
   for (i=0; i<6; i++) {
     itoa(grb[i], buf, 2);
     softuart_puts(buf);
@@ -118,6 +123,5 @@ int main(void)
   softuart_putchar('\r');
   softuart_putchar('\n');
 
-  _delay_ms(1000);
   return 0;
 }
