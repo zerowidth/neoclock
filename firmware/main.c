@@ -10,11 +10,6 @@
 #include <avr/pgmspace.h>
 #include "softuart.h"
 
-#define PWM_DDR OC1B_DDR
-#define PWM_BIT OC1B_BIT
-#define PWM_COM_BIT COM1B1
-#define PWM_REGISTER OCR1B
-
 #define PIXELS 60
 #define PIXEL_PORT  PORTA  // Port of the pin the pixels are connected to
 #define PIXEL_DDR   DDRA   // Port of the pin the pixels are connected to
@@ -28,26 +23,6 @@ void set_pixel(uint8_t i, uint8_t r, uint8_t g, uint8_t b)
   grb[offset] = g;
   grb[offset+1] = r;
   grb[offset+2] = b;
-}
-
-void zero() {
-  uint16_t i;
-  cli();
-  for(i=0; i < (PIXELS * 3 * 8); i++) {
-    asm volatile(
-        "sbi %[port], %[pin]" "\n\t"
-        "nop"                 "\n\t"
-        "cbi %[port], %[pin]" "\n\t"
-        "nop"                 "\n\t"
-        "nop"                 "\n\t"
-        "nop"                 "\n\t"
-        "nop"                 "\n\t"
-        "nop"                 "\n\t"
-        ::
-        [port] "i" (_SFR_IO_ADDR(PIXEL_PORT)),
-        [pin] "i" (PIXEL_BIT));
-  }
-  sei();
 }
 
 void write_pixels(uint8_t pixels) {
@@ -99,7 +74,6 @@ int main(void)
       write_pixels(PIXELS);
       _delay_ms(15);
     }
-
   }
 
   return 0;
