@@ -11,9 +11,9 @@
 #include "softuart.h"
 
 #define PIXELS 60
-#define PIXEL_PORT  PORTA  // Port of the pin the pixels are connected to
-#define PIXEL_DDR   DDRA   // Port of the pin the pixels are connected to
-#define PIXEL_BIT   PORTA0 // Bit of the pin the pixels are connected to
+#define PIXEL_PORT PORTA
+#define PIXEL_DDR  DDRA
+#define PIXEL_BIT  PORTA0
 
 static uint8_t grb[PIXELS*3];
 
@@ -25,7 +25,7 @@ void set_pixel(uint8_t i, uint8_t r, uint8_t g, uint8_t b)
   grb[offset+2] = b;
 }
 
-void write_pixels(uint8_t pixels) {
+void write_pixels() {
   cli();
   asm volatile(
       "1:"                    "\n\t" /* outer loop: iterate bytes */
@@ -42,7 +42,7 @@ void write_pixels(uint8_t pixels) {
       "brne 2b"               "\n\t" /* 2c if skip, 1c if not */
       "dec %[nbytes]"         "\n\t"
       "brne 1b"               "\n\t"
-      :: [nbytes]  "d" (pixels * 3)  /* how many pixels to write */
+      :: [nbytes]  "d" (PIXELS * 3)  /* how many pixels to write */
       ,  [grb]     "w" (grb)         /* pointer to grb byte array */
       ,  [byte]    "r" (0)
       ,  [bits]    "r" (8)
@@ -71,7 +71,7 @@ int main(void)
         k = (i + j) % PIXELS;
         set_pixel(k, (i + 1) , (i + 1) >> 2, 0);
       }
-      write_pixels(PIXELS);
+      write_pixels();
       _delay_ms(15);
     }
   }
