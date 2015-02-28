@@ -106,6 +106,18 @@
     #define PIN_USI_SCL         PINB7
 #endif
 
+#if defined(__AVR_ATtiny84A__)
+    #define DDR_USI             DDRA
+    #define PORT_USI            PORTA
+    #define PIN_USI             PINA
+    #define PORT_USI_SDA        PORTA6
+    #define PORT_USI_SCL        PORTA4
+    #define PIN_USI_SDA         PINA6
+    #define PIN_USI_SCL         PINA4
+#else
+  #error "no ATtiny84 defined"
+#endif
+
 // General defines
 #define TRUE  1
 #define FALSE 0
