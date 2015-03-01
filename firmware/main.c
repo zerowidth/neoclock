@@ -9,11 +9,14 @@
 #include <avr/interrupt.h>
 #include <avr/pgmspace.h>
 #include "softuart.h"
+#include "USI_TWI_Master.h"
 
 #define PIXELS 60
 #define PIXEL_PORT PORTA
 #define PIXEL_DDR  DDRA
 #define PIXEL_BIT  PORTA0
+
+#define RTC_ADDR 0xD0
 
 static uint8_t grb[PIXELS*3];
 
@@ -53,27 +56,54 @@ void write_pixels() {
   sei();
 }
 
+void get_time() {
+  uint8_t i;
+  uint8_t xfer[4];
+  uint8_t status;
+
+  xfer[0] = RTC_ADDR;
+  xfer[1] = 0;
+
+  if(!USI_TWI_Start_Transceiver_With_Data(xfer, 2)) {
+    status = USI_TWI_Get_State_Info();
+    softuart_puts_P("write status: ");
+    softuart_putchar(status + 48);
+    softuart_puts_P("\r\n");
+    return;
+  }
+
+  xfer[0] = RTC_ADDR | 1;
+  if(USI_TWI_Start_Transceiver_With_Data(xfer, 4)) {
+    softuart_putchar(48 + (xfer[3] >> 4));
+    softuart_putchar(48 + (xfer[3] & 0x0F));
+    softuart_putchar(':');
+    softuart_putchar(48 + (xfer[2] >> 4));
+    softuart_putchar(48 + (xfer[2] & 0x0F));
+    softuart_putchar(':');
+    softuart_putchar(48 + (xfer[1] >> 4));
+    softuart_putchar(48 + (xfer[1] & 0x0F));
+    softuart_puts_P("\r\n");
+  }
+  else {
+    status = USI_TWI_Get_State_Info();
+    softuart_puts_P("read status: ");
+    softuart_putchar(status + 48);
+    softuart_puts_P("\r\n");
+  }
+}
+
 int main(void)
 {
   PIXEL_DDR |= _BV(PIXEL_BIT);
-
+  USI_TWI_Master_Initialise();
   softuart_init();
   sei();
 
-  softuart_puts_P( "\r\nready.\r\n" );
-  _delay_ms(50);
+  softuart_puts_P( "ready.\r\n" );
 
-  uint8_t i, j, k;
-
-  for(;;) {
-    for(j = 0; j < PIXELS; j++) {
-      for(i = 0; i < PIXELS; i++) {
-        k = (i + j) % PIXELS;
-        set_pixel(k, (i + 1) , (i + 1) >> 2, 0);
-      }
-      write_pixels();
-      _delay_ms(15);
-    }
+  while(1) {
+    get_time();
+    _delay_ms(900);
   }
 
   return 0;
