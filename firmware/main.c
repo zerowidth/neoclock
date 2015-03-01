@@ -12,6 +12,7 @@
 #include "USI_TWI_Master.h"
 
 #define PIXELS 60
+#define PIXEL_OFFSET 37
 #define PIXEL_PORT PORTA
 #define PIXEL_DDR  DDRA
 #define PIXEL_BIT  PORTA0
@@ -19,13 +20,33 @@
 #define RTC_ADDR 0xD0
 
 static uint8_t grb[PIXELS*3];
+static uint8_t hour;
+static uint8_t minute;
+static uint8_t second;
+
+uint8_t add_clamped_color(uint8_t current, uint8_t value)
+{
+  uint16_t new_value = current + value;
+  if (new_value > 255) {
+    new_value = 255;
+  }
+  return (uint8_t)new_value;
+}
 
 void set_pixel(uint8_t i, uint8_t r, uint8_t g, uint8_t b)
 {
-  uint8_t offset = i*3;
+  uint8_t offset = ((i + PIXEL_OFFSET) % PIXELS) * 3;
   grb[offset] = g;
   grb[offset+1] = r;
   grb[offset+2] = b;
+}
+
+void add_color(uint8_t i, uint8_t r, uint8_t g, uint8_t b)
+{
+  uint8_t offset = ((i + PIXEL_OFFSET) % PIXELS) * 3;
+  grb[offset]   = add_clamped_color(grb[offset], g);
+  grb[offset+1] = add_clamped_color(grb[offset+1], r);
+  grb[offset+2] = add_clamped_color(grb[offset+2], b);
 }
 
 void write_pixels() {
@@ -56,8 +77,11 @@ void write_pixels() {
   sei();
 }
 
+uint8_t bcd_to_dec(uint8_t bcd) {
+  return (bcd >> 4) * 10 + (bcd & 0x0F);
+}
+
 void get_time() {
-  uint8_t i;
   uint8_t xfer[4];
   uint8_t status;
 
@@ -66,7 +90,7 @@ void get_time() {
 
   if(!USI_TWI_Start_Transceiver_With_Data(xfer, 2)) {
     status = USI_TWI_Get_State_Info();
-    softuart_puts_P("write status: ");
+    softuart_puts_P("write: ");
     softuart_putchar(status + 48);
     softuart_puts_P("\r\n");
     return;
@@ -74,22 +98,29 @@ void get_time() {
 
   xfer[0] = RTC_ADDR | 1;
   if(USI_TWI_Start_Transceiver_With_Data(xfer, 4)) {
-    softuart_putchar(48 + (xfer[3] >> 4));
-    softuart_putchar(48 + (xfer[3] & 0x0F));
-    softuart_putchar(':');
-    softuart_putchar(48 + (xfer[2] >> 4));
-    softuart_putchar(48 + (xfer[2] & 0x0F));
-    softuart_putchar(':');
-    softuart_putchar(48 + (xfer[1] >> 4));
-    softuart_putchar(48 + (xfer[1] & 0x0F));
-    softuart_puts_P("\r\n");
+    second = bcd_to_dec(xfer[1]);
+    minute = bcd_to_dec(xfer[2]);
+    hour   = bcd_to_dec(xfer[3]);
   }
   else {
     status = USI_TWI_Get_State_Info();
-    softuart_puts_P("read status: ");
+    softuart_puts_P("read: ");
     softuart_putchar(status + 48);
     softuart_puts_P("\r\n");
   }
+}
+
+void show_time() {
+  uint8_t i;
+
+  for(i=0; i<(PIXELS*3); i++) {
+    grb[i] = 0;
+  }
+  add_color(hour * 5, 32, 0, 0);
+  add_color(minute, 0, 32, 0);
+  add_color(second, 0, 0, 32);
+
+  write_pixels();
 }
 
 int main(void)
@@ -103,7 +134,7 @@ int main(void)
 
   while(1) {
     get_time();
-    _delay_ms(900);
+    show_time();
   }
 
   return 0;
