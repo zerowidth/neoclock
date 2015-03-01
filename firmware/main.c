@@ -136,9 +136,9 @@ void show_time() {
   write_pixels();
 }
 
-void debug_int(uint16_t value)
+void debug_int(uint32_t value)
 {
-  char buf[6];
+  char buf[11];
   itoa(value, buf, 10);
   softuart_puts(buf);
 }
