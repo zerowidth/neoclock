@@ -5,9 +5,10 @@
  */
 
 #include <avr/io.h>
-#include <util/delay.h>
 #include <avr/interrupt.h>
+#include <stdlib.h>
 #include <avr/pgmspace.h>
+#include <util/delay.h>
 #include "softuart.h"
 #include "USI_TWI_Master.h"
 
@@ -17,12 +18,24 @@
 #define PIXEL_DDR  DDRA
 #define PIXEL_BIT  PORTA0
 
+#define MILLIS_OVERFLOW ((F_CPU / 1000) / 8)
+
 #define RTC_ADDR 0xD0
 
 static uint8_t grb[PIXELS*3];
 static uint8_t hour;
 static uint8_t minute;
 static uint8_t second;
+static uint8_t prev_second;
+
+/* How many milliseconds since last second changed */
+/* Accessing this directly could be buggy, but not worried for now */
+volatile uint16_t millisecond;
+
+ISR (TIM1_COMPA_vect)
+{
+  millisecond++;
+}
 
 uint8_t add_clamped_color(uint8_t current, uint8_t value)
 {
@@ -123,18 +136,47 @@ void show_time() {
   write_pixels();
 }
 
+void debug_int(uint16_t value)
+{
+  char buf[6];
+  itoa(value, buf, 10);
+  softuart_puts(buf);
+}
+
 int main(void)
 {
   PIXEL_DDR |= _BV(PIXEL_BIT);
   USI_TWI_Master_Initialise();
   softuart_init();
+
+  OCR1AH = (MILLIS_OVERFLOW >> 8);
+  OCR1AL = (uint8_t)MILLIS_OVERFLOW;
+  /* CTC mode, with /8 prescaler */
+  TCCR1B |= (1 << WGM12) | (1 << CS11);
+  /* interrupt on OCR1A match */
+  TIMSK1 |= (1 << OCIE1A);
   sei();
 
   softuart_puts_P( "ready.\r\n" );
 
   while(1) {
     get_time();
+    if (prev_second != second) {
+      prev_second = second;
+      softuart_puts_P("ms: ");
+      debug_int(millisecond);
+      softuart_puts_P("\r\n");
+      millisecond = 0;
+    }
     show_time();
+
+    /* Since interrupts are disabled when writing to the WS2812B LEDs, the
+     * millisecond timer's interrupts aren't triggered often enough, and some
+     * time is "lost". Introducing some delay between iterations allows more of
+     * those interrupts to succeed, keeping millisecond accuracy to within 90%,
+     * that is, losing 100ms out of every 1000. Without the WS2812B, accuracy is
+     * about 95%. */
+    _delay_ms(15);
   }
 
   return 0;
