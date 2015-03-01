@@ -7,7 +7,7 @@ DEVICE     = attiny84a
 AVR_DEVICE = t84
 CLOCK      = 8000000
 PROGRAMMER = -c usbtiny
-OBJECTS    = main.o softuart.o
+OBJECTS    = main.o softuart.o USI_TWI_Master.o
 # 0xe2 for internal 8MHz clock, 0x62 for internal 1MHz:
 FUSES      = -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m # -U efuse:w:0xff:m
 
