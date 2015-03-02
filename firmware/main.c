@@ -31,10 +31,44 @@ static uint8_t prev_second;
 /* How many milliseconds since last second changed */
 /* Accessing this directly could be buggy, but not worried for now */
 volatile uint16_t millisecond;
+static uint16_t prev_max_ms; /* Previous max ms value */
+
+void debug_int(uint32_t value)
+{
+  char buf[11];
+  itoa(value, buf, 10);
+  softuart_puts(buf);
+}
 
 ISR (TIM1_COMPA_vect)
 {
   millisecond++;
+}
+
+/* Retrieve the adjusted millisecond value, taking calculated inaccuracy into
+ * account by stretching the calculated milliseconds to fit a full second */
+uint16_t millis() {
+  uint16_t ms = (uint32_t)millisecond * 1000 / prev_max_ms;
+  if (ms > 1000) {
+    ms = 1000; /* stretching can go too far */
+  }
+  return ms;
+}
+
+/* Keep millisecond count updated based on the last-retrieved second.
+ * Tracks the difference between the RTC and internal millisecond counter.
+ * When interrupts aren't disabled, the millis timer is accurate to about 950ms
+ * out of every second. When interrupts are disabled while writing to the
+ * WS2812B pixels, it's closer to 800ms/sec, and with a 15ms delay each
+ * iteration of the main loop, it's closer to 900ms/sec. Even at 800ms/sec, the
+ * compensated millis() value makes for smooth interpolation across a second. */
+void update_millis()
+{
+  if (prev_second != second) {
+    prev_second = second;
+    prev_max_ms = millisecond;
+    millisecond = 0;
+  }
 }
 
 uint8_t add_clamped_color(uint8_t current, uint8_t value)
@@ -121,10 +155,13 @@ void get_time() {
     softuart_putchar(status + 48);
     softuart_puts_P("\r\n");
   }
+
+  update_millis();
 }
 
 void show_time() {
   uint8_t i;
+  uint16_t ms;
 
   for(i=0; i<(PIXELS*3); i++) {
     grb[i] = 0;
@@ -133,14 +170,10 @@ void show_time() {
   add_color(minute, 0, 32, 0);
   add_color(second, 0, 0, 32);
 
-  write_pixels();
-}
+  ms = millis() * 3 / 50;
+  add_color(ms, 24, 8, 0);
 
-void debug_int(uint32_t value)
-{
-  char buf[11];
-  itoa(value, buf, 10);
-  softuart_puts(buf);
+  write_pixels();
 }
 
 int main(void)
@@ -161,22 +194,7 @@ int main(void)
 
   while(1) {
     get_time();
-    if (prev_second != second) {
-      prev_second = second;
-      softuart_puts_P("ms: ");
-      debug_int(millisecond);
-      softuart_puts_P("\r\n");
-      millisecond = 0;
-    }
     show_time();
-
-    /* Since interrupts are disabled when writing to the WS2812B LEDs, the
-     * millisecond timer's interrupts aren't triggered often enough, and some
-     * time is "lost". Introducing some delay between iterations allows more of
-     * those interrupts to succeed, keeping millisecond accuracy to within 90%,
-     * that is, losing 100ms out of every 1000. Without the WS2812B, accuracy is
-     * about 95%. */
-    _delay_ms(15);
   }
 
   return 0;
