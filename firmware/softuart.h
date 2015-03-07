@@ -6,13 +6,13 @@
 #define SOFTUART_BAUD_RATE      9600
 
 #if defined (__AVR_ATtiny25__) || defined (__AVR_ATtiny45__) || defined (__AVR_ATtiny85__) || defined (__AVR_ATtiny84A__)
-    #define SOFTUART_RXPIN   PINB
-    #define SOFTUART_RXDDR   DDRB
-    #define SOFTUART_RXBIT   PB0
+    #define SOFTUART_RXPIN   PINA
+    #define SOFTUART_RXDDR   DDRA
+    #define SOFTUART_RXBIT   PA1
 
-    #define SOFTUART_TXPORT  PORTB
-    #define SOFTUART_TXDDR   DDRB
-    #define SOFTUART_TXBIT   PB1
+    #define SOFTUART_TXPORT  PORTA
+    #define SOFTUART_TXDDR   DDRA
+    #define SOFTUART_TXBIT   PA2
 
     #define SOFTUART_T_COMP_LABEL      TIM0_COMPA_vect
     #define SOFTUART_T_COMP_REG        OCR0A

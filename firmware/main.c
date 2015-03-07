@@ -16,7 +16,7 @@
 #define PIXEL_OFFSET 37
 #define PIXEL_PORT PORTA
 #define PIXEL_DDR  DDRA
-#define PIXEL_BIT  PORTA0
+#define PIXEL_BIT  PORTA5
 
 #define MILLIS_OVERFLOW ((F_CPU / 1000) / 8)
 
