@@ -18,6 +18,10 @@
 #define PIXEL_DDR  DDRA
 #define PIXEL_BIT  PORTA5
 
+#define BTN_PORT PORTB
+#define BTN_PINS PINB
+#define BTN0 PORTB0
+
 #define MILLIS_OVERFLOW ((F_CPU / 1000) / 8)
 
 #define RTC_ADDR 0xD0
@@ -31,6 +35,8 @@ static uint8_t hour;
 static uint8_t minute;
 static uint8_t second;
 static uint8_t prev_second;
+
+static uint32_t btn0_pressed;
 
 /* How many milliseconds since last second changed */
 /* Accessing this directly could be buggy, but not worried for now */
@@ -71,7 +77,8 @@ void adc_init()
 
 void io_init()
 {
-  PIXEL_DDR |= _BV(PIXEL_BIT);
+  PIXEL_DDR |= (1 << PIXEL_BIT); /* pixel output */
+  BTN_PORT |= (1 << BTN0); /* button input with pullup */
 }
 
 void update_light_level()
@@ -93,6 +100,18 @@ void update_light_level()
   /* fade output level between calculated light levels */
   if(output_level < light_level) { output_level++; }
   else if(output_level > light_level) { output_level--; }
+}
+
+void update_buttons()
+{
+  uint8_t pressed = !(BTN_PINS & (1 << BTN0));
+  if(!btn0_pressed && pressed) {
+    draw_pendulum = !draw_pendulum;
+    btn0_pressed = 1;
+  }
+  else if(btn0_pressed && !pressed) {
+    btn0_pressed = 0;
+  }
 }
 
 /* Retrieve the adjusted millisecond value, taking calculated inaccuracy into
@@ -306,6 +325,7 @@ int main(void)
 
   while(1) {
     update_light_level();
+    update_buttons();
     get_time();
     show_time();
   }
