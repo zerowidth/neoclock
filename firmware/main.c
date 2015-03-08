@@ -31,8 +31,9 @@ static uint8_t prev_second;
 /* How many milliseconds since last second changed */
 /* Accessing this directly could be buggy, but not worried for now */
 volatile uint16_t millisecond;
-static uint16_t prev_max_ms; /* Previous max ms value */
+static uint16_t prev_max_ms = 1000; /* Previous max ms value */
 
+static uint8_t output_level = 1;
 void debug_int(uint32_t value)
 {
   char buf[11];
@@ -43,6 +44,47 @@ void debug_int(uint32_t value)
 ISR (TIM1_COMPA_vect)
 {
   millisecond++;
+}
+
+void timer_init()
+{
+  OCR1AH = (MILLIS_OVERFLOW >> 8);
+  OCR1AL = (uint8_t)MILLIS_OVERFLOW;
+  /* CTC mode, with /8 prescaler */
+  TCCR1B |= (1 << WGM12) | (1 << CS11);
+  /* interrupt on OCR1A match */
+  TIMSK1 |= (1 << OCIE1A);
+}
+
+void adc_init()
+{
+  PRR &= ~(1 << PRADC); /* disable ADC powersave */
+  ADCSRA |= (1 << ADEN); /* enable ADC */
+  ADCSRB |= (1 << ADLAR); /* left-align ADC value, only need 8 bits */
+}
+
+void io_init()
+{
+  PIXEL_DDR |= _BV(PIXEL_BIT);
+}
+
+void update_light_level()
+{
+  uint8_t analog_level, light_level;
+
+  ADCSRA |= (1 << ADSC);
+  while ( ADCSRA & (1<<ADSC) ) { }
+  light_level = ADCH;
+  /* fade output level between calculated light levels */
+  if(output_level < light_level) { output_level++; }
+  else if(output_level > light_level) { output_level--; }
+}
+
+void second_changed()
+{
+  debug_int(output_level);
+  softuart_putchar('\r');
+  softuart_putchar('\n');
 }
 
 /* Retrieve the adjusted millisecond value, taking calculated inaccuracy into
@@ -65,8 +107,9 @@ uint16_t millis() {
 void update_millis()
 {
   if (prev_second != second) {
+    second_changed(); /* callback */
     prev_second = second;
-    prev_max_ms = millisecond;
+    prev_max_ms = (millisecond + prev_max_ms) / 2; /* smooth it a bit */
     millisecond = 0;
   }
 }
@@ -159,6 +202,18 @@ void get_time() {
   update_millis();
 }
 
+void show_light_level() {
+  uint16_t level = output_level * 15 / 64;
+  uint8_t i;
+  for(i=0; i<(PIXELS*3); i++) {
+    grb[i] = 0;
+  }
+  for (i=0; i < level; i++) {
+    add_color(i, 16, 0, 0);
+  }
+  write_pixels();
+}
+
 void show_time() {
   uint8_t i;
   uint16_t ms;
@@ -178,23 +233,19 @@ void show_time() {
 
 int main(void)
 {
-  PIXEL_DDR |= _BV(PIXEL_BIT);
+  io_init();
+  adc_init();
   USI_TWI_Master_Initialise();
   softuart_init();
-
-  OCR1AH = (MILLIS_OVERFLOW >> 8);
-  OCR1AL = (uint8_t)MILLIS_OVERFLOW;
-  /* CTC mode, with /8 prescaler */
-  TCCR1B |= (1 << WGM12) | (1 << CS11);
-  /* interrupt on OCR1A match */
-  TIMSK1 |= (1 << OCIE1A);
+  timer_init();
   sei();
 
   softuart_puts_P( "ready.\r\n" );
 
   while(1) {
+    update_light_level();
     get_time();
-    show_time();
+    show_light_level();
   }
 
   return 0;
