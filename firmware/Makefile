@@ -60,6 +60,6 @@ disasm:	main.elf
 	avr-objdump -l -S -d main.elf | pygmentize -l c-objdump
 
 serial:
-	picocom -b 9600 --send-cmd 'date +T%y%m%d%u%H%M%S' $$(ls /dev/tty.usbserial* | head -1)
+	picocom -b 9600 --echo --send-cmd 'date +T%y%m%d%u%H%M%S' $$(ls /dev/tty.usbserial* | head -1)
 
 include $(wildcard *.d)
