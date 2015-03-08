@@ -22,6 +22,10 @@
 
 #define RTC_ADDR 0xD0
 
+#define SCALE(val) ((val) * output_level / 128)
+#define PENDULUM_PERIOD 4000
+#define HALF_PERIOD 2000
+
 static uint8_t grb[PIXELS*3];
 static uint8_t hour;
 static uint8_t minute;
@@ -34,6 +38,8 @@ volatile uint16_t millisecond;
 static uint16_t prev_max_ms = 1000; /* Previous max ms value */
 
 static uint8_t output_level = 1;
+static uint8_t draw_pendulum = 1;
+
 void debug_int(uint32_t value)
 {
   char buf[11];
@@ -74,17 +80,19 @@ void update_light_level()
 
   ADCSRA |= (1 << ADSC);
   while ( ADCSRA & (1<<ADSC) ) { }
-  light_level = ADCH;
+  analog_level = ADCH;
+
+  /* map 0-255 to 0-3, then to 16, 32, 64, or 128, and 8 as a lower bound */
+  if (analog_level < 16) {
+    light_level = 8;
+  }
+  else {
+    light_level = 1 << (4 + analog_level / 64);
+  }
+
   /* fade output level between calculated light levels */
   if(output_level < light_level) { output_level++; }
   else if(output_level > light_level) { output_level--; }
-}
-
-void second_changed()
-{
-  debug_int(output_level);
-  softuart_putchar('\r');
-  softuart_putchar('\n');
 }
 
 /* Retrieve the adjusted millisecond value, taking calculated inaccuracy into
@@ -107,7 +115,6 @@ uint16_t millis() {
 void update_millis()
 {
   if (prev_second != second) {
-    second_changed(); /* callback */
     prev_second = second;
     prev_max_ms = (millisecond + prev_max_ms) / 2; /* smooth it a bit */
     millisecond = 0;
@@ -202,31 +209,86 @@ void get_time() {
   update_millis();
 }
 
-void show_light_level() {
-  uint16_t level = output_level * 15 / 64;
-  uint8_t i;
-  for(i=0; i<(PIXELS*3); i++) {
-    grb[i] = 0;
-  }
-  for (i=0; i < level; i++) {
-    add_color(i, 16, 0, 0);
-  }
-  write_pixels();
-}
-
 void show_time() {
   uint8_t i;
-  uint16_t ms;
+  uint16_t ms = millis();
 
+  uint16_t level;
+  uint8_t hour_pos;
+  uint32_t pendulum;
+  uint16_t period_ms;
+  uint8_t pendulum_pos;
+
+  /* clear the clock face */
   for(i=0; i<(PIXELS*3); i++) {
     grb[i] = 0;
   }
-  add_color(hour * 5, 32, 0, 0);
-  add_color(minute, 0, 32, 0);
-  add_color(second, 0, 0, 32);
 
-  ms = millis() * 3 / 50;
-  add_color(ms, 24, 8, 0);
+  /* second hand: quadratic ease in-out */
+  /* first half:  y = (x/500)*(x/500)*64 */
+  /* second half: y = 128 - ((x-1000)/500)*(x-1000)/500)*64 */
+  if (ms < 500) {
+    level = (uint32_t)64 * ms * ms * output_level / 500 / 500 / 128;
+  }
+  else {
+    /* should be (ms - 1000) but the signs cancel so keep it positive */
+    level = output_level - (uint32_t)64 * (1000-ms) * (1000-ms) * output_level / 500 / 500 / 128;
+  }
+  add_color(second, 0, 0, output_level - level);
+  add_color(second + 1, 0, 0, level);
+
+  /* minute hand */
+  /* 60000 ms -> 128 levels, LCM is 240000: 60k * 4, 128 * 1875 */
+  level = (uint32_t)(second * 1000 + ms) * 4 / 1875 * output_level / 128;
+  add_color(minute, 0, output_level - level, 0);
+  add_color(minute + 1, 0, level, 0);
+
+  /* hour hand */
+  /* know the current hour, but need to interpolate across a 5-minute span */
+  /* 3600 sec -> 640 level (128 * 5), LCM 28800: 3600 * 8, 640 * 45 */
+  level = ((uint32_t)(minute * 60 + second)) * 8 / 45;
+  hour_pos = hour * 5 + level / 128;
+  level = SCALE(level % 128);
+  add_color(hour_pos, output_level - level, 0, 0);
+  add_color(hour_pos + 1, level, 0, 0);
+
+  /* pendulum */
+  /* 128 levels * 30 pixels = 3840 */
+  /* using y=x^2 instead of cosine so no floating point is needed */
+  /* y = (x/half_period)^2 * 3840 for first half */
+  /* y = 3840*2 - ((x-period)/half_period)^2 * 3840 for second half */
+  /* try and preserve precision but don't overflow 32 bytes */
+  period_ms = (ms + (second * 1000)) % PENDULUM_PERIOD;
+  if (period_ms <= HALF_PERIOD) {
+    pendulum = (uint32_t)period_ms * period_ms;
+  }
+  else {
+    pendulum = (uint32_t)period_ms - PENDULUM_PERIOD;
+    pendulum = pendulum * pendulum;
+  }
+  pendulum = pendulum / (uint32_t)HALF_PERIOD;
+  pendulum = pendulum * (uint32_t)3840;
+  pendulum = pendulum / (uint32_t)HALF_PERIOD;
+  if (period_ms > HALF_PERIOD) {
+    pendulum = (uint32_t)3840*2 - pendulum;
+  }
+  pendulum_pos = pendulum / 128;
+  /* 128 --> 48/24 (3/8 and 3/16 multipliers) */
+  level = (pendulum - pendulum_pos * 128) * 3 / 8;
+  if (draw_pendulum) {
+    add_color(pendulum_pos, SCALE(48 - level), SCALE(24 - level / 2), 0);
+    add_color(pendulum_pos + 1, SCALE(level), SCALE(level / 2), 0);
+  }
+
+  /* clock face */
+  /* with output levels at 16, 32, 64, or 128: should be 8/4 at 128, 4/2 at 64 */
+  for (i=0; i<PIXELS; i+=5) {
+    level = output_level / ((i % 15 == 0) ? 16 : 32);
+    if(level == 0 && ( output_level > 8 || ( output_level == 8 && i == 0 ) ) ) {
+      level = 1;
+    }
+    add_color(i, level, level, level);
+  }
 
   write_pixels();
 }
@@ -245,7 +307,7 @@ int main(void)
   while(1) {
     update_light_level();
     get_time();
-    show_light_level();
+    show_time();
   }
 
   return 0;
