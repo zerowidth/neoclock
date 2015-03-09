@@ -21,6 +21,8 @@
 #define BTN_PORT PORTB
 #define BTN_PINS PINB
 #define BTN0 PORTB0
+#define BTN1 PORTB1
+#define BTN2 PORTB2
 
 #define MILLIS_OVERFLOW ((F_CPU / 1000) / 8)
 
@@ -36,7 +38,12 @@ static uint8_t minute;
 static uint8_t second;
 static uint8_t prev_second;
 
-static uint32_t btn0_pressed;
+typedef enum {UP, DOWN} direction;
+static enum {CLOCK, ALT, SERIAL} mode = CLOCK;
+
+static uint8_t btn0_pressed;
+static uint8_t btn1_pressed;
+static uint8_t btn2_pressed;
 
 /* How many milliseconds since last second changed */
 /* Accessing this directly could be buggy, but not worried for now */
@@ -78,7 +85,7 @@ void adc_init()
 void io_init()
 {
   PIXEL_DDR |= (1 << PIXEL_BIT); /* pixel output */
-  BTN_PORT |= (1 << BTN0); /* button input with pullup */
+  BTN_PORT |= (1 << BTN0) | (1 << BTN1) | (1 << BTN2); /* button input with pullup */
 }
 
 void update_light_level()
@@ -100,18 +107,6 @@ void update_light_level()
   /* fade output level between calculated light levels */
   if(output_level < light_level) { output_level++; }
   else if(output_level > light_level) { output_level--; }
-}
-
-void update_buttons()
-{
-  uint8_t pressed = !(BTN_PINS & (1 << BTN0));
-  if(!btn0_pressed && pressed) {
-    draw_pendulum = !draw_pendulum;
-    btn0_pressed = 1;
-  }
-  else if(btn0_pressed && !pressed) {
-    btn0_pressed = 0;
-  }
 }
 
 /* Retrieve the adjusted millisecond value, taking calculated inaccuracy into
@@ -197,6 +192,10 @@ uint8_t bcd_to_dec(uint8_t bcd) {
   return (bcd >> 4) * 10 + (bcd & 0x0F);
 }
 
+uint8_t dec_to_bcd(uint8_t dec) {
+  return ((dec / 10) << 4) | (dec % 10);
+}
+
 void get_time() {
   uint8_t xfer[4];
   uint8_t status;
@@ -226,6 +225,120 @@ void get_time() {
   }
 
   update_millis();
+}
+
+void set_time() {
+  uint8_t xfer[5];
+  uint8_t status;
+
+  xfer[0] = RTC_ADDR;
+  xfer[1] = 0;
+  xfer[2] = dec_to_bcd(second);
+  xfer[3] = dec_to_bcd(minute);
+  xfer[4] = dec_to_bcd(hour); /* 0 in bit 6 means 24-hour, which is fine */
+
+  if(!USI_TWI_Start_Transceiver_With_Data(xfer, 5)) {
+    status = USI_TWI_Get_State_Info();
+    softuart_puts_P("write: ");
+    softuart_putchar(status + 48);
+    softuart_puts_P("\r\n");
+    return;
+  }
+  millisecond = 0;
+}
+
+void change_hour(direction dir) {
+  if (dir == UP) {
+    if (hour == 23) {
+      hour = 0;
+    }
+    else {
+      hour++;
+    }
+  }
+  else {
+    if (hour == 0) {
+      hour = 23;
+    }
+    else {
+      hour--;
+    }
+  }
+}
+
+void change_minute(direction dir) {
+  if (dir == UP) {
+    second = 0;
+    if (minute == 59) {
+      minute = 0;
+      change_hour(UP);
+    }
+    else {
+      minute++;
+    }
+  }
+  else {
+    if (second > 0) {
+      second = 0;
+    }
+    else {
+      if (minute == 0) {
+        minute = 59;
+        change_hour(DOWN);
+      }
+      else {
+        minute--;
+      }
+    }
+  }
+}
+
+void update_buttons()
+{
+  uint8_t pressed = !(BTN_PINS & (1 << BTN0));
+  if(!btn0_pressed && pressed) {
+    btn0_pressed = 1;
+    mode = ALT;
+    draw_pendulum = !draw_pendulum;
+  }
+  else if(btn0_pressed && !pressed) {
+    btn0_pressed = 0;
+    mode = CLOCK;
+  }
+
+  pressed = !(BTN_PINS & (1 << BTN1));
+  if(!btn1_pressed && pressed) {
+    btn1_pressed = 1;
+
+    if(mode == ALT) {
+      change_minute(DOWN);
+    }
+    else {
+      change_hour(DOWN);
+    }
+
+    set_time();
+  }
+  else if(btn1_pressed && !pressed) {
+    btn1_pressed = 0;
+  }
+
+  pressed = !(BTN_PINS & (1 << BTN2));
+  if(!btn2_pressed && pressed) {
+    btn2_pressed = 1;
+
+    if(mode == ALT) {
+      change_minute(UP);
+    }
+    else {
+      change_hour(UP);
+    }
+
+    set_time();
+  }
+  else if(btn2_pressed && !pressed) {
+    btn2_pressed = 0;
+  }
 }
 
 void show_time() {
@@ -321,7 +434,7 @@ int main(void)
   timer_init();
   sei();
 
-  softuart_puts_P( "ready.\r\n" );
+  softuart_puts_P( "time begins.\r\n" );
 
   while(1) {
     update_light_level();
