@@ -1,0 +1,4 @@
+*.bak
+*.bck
+neoclock.kicad_pcb-bak
+neoclock-cache.lib
