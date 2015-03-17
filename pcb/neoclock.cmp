@@ -1,0 +1,129 @@
+Cmp-Mod V01 Created by Cvpcb (2015-03-10 BZR 5502)-product   date = Monday, March 16, 2015 'PMt' 10:09:33 PM
+
+BeginCmp
+TimeStamp = /55026F7F;
+Reference = BT1;
+ValeurCmp = CR1632;
+IdModule  = NeoClock:BAT_Keystone_3012TR_16mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /55035472;
+Reference = C1;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /55025B22;
+Reference = C2;
+ValeurCmp = 0.1uF;
+IdModule  = Capacitors_SMD:C_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /55025B94;
+Reference = C3;
+ValeurCmp = 100uF;
+IdModule  = NeoClock:CP_Panasonic_SV_D;
+EndCmp
+
+BeginCmp
+TimeStamp = /550520FD;
+Reference = CON1;
+ValeurCmp = USB-MICRO-B;
+IdModule  = NeoClock:CONN_Molex_USB_Micro_SMT;
+EndCmp
+
+BeginCmp
+TimeStamp = /550259AB;
+Reference = IC1;
+ValeurCmp = ATTINY84-S;
+IdModule  = Housings_SOIC:SOIC-14_3.9x8.7mm_Pitch1.27mm;
+EndCmp
+
+BeginCmp
+TimeStamp = /5502C512;
+Reference = IC2;
+ValeurCmp = DS3231MZ+;
+IdModule  = SMD_Packages:SOIC-8-N;
+EndCmp
+
+BeginCmp
+TimeStamp = /55025C64;
+Reference = ISP1;
+ValeurCmp = AVR-ISP-6;
+IdModule  = NeoClock:Pin_Header_Straight_2x03_Plain;
+EndCmp
+
+BeginCmp
+TimeStamp = /55025CBE;
+Reference = P1;
+ValeurCmp = Photoresistor;
+IdModule  = NeoClock:Pin_Header_Straight_1x02_Plain;
+EndCmp
+
+BeginCmp
+TimeStamp = /5502697E;
+Reference = P2;
+ValeurCmp = Serial;
+IdModule  = NeoClock:Pin_Header_Straight_1x03_Plain;
+EndCmp
+
+BeginCmp
+TimeStamp = /55026426;
+Reference = P3;
+ValeurCmp = NeoPixel Ring;
+IdModule  = NeoClock:Pin_Header_Straight_1x03_Plain;
+EndCmp
+
+BeginCmp
+TimeStamp = /5502757F;
+Reference = R1;
+ValeurCmp = 4.7k;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /550275CE;
+Reference = R2;
+ValeurCmp = 4.7k;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /55027B26;
+Reference = R3;
+ValeurCmp = 4.7k;
+IdModule  = Resistors_SMD:R_0805;
+EndCmp
+
+BeginCmp
+TimeStamp = /550340AB;
+Reference = SW1;
+ValeurCmp = Button 1;
+IdModule  = NeoClock:BTN_E_Switch_TL1105;
+EndCmp
+
+BeginCmp
+TimeStamp = /550340ED;
+Reference = SW2;
+ValeurCmp = Button 2;
+IdModule  = NeoClock:BTN_E_Switch_TL1105;
+EndCmp
+
+BeginCmp
+TimeStamp = /55034141;
+Reference = SW3;
+ValeurCmp = Button 3;
+IdModule  = NeoClock:BTN_E_Switch_TL1105;
+EndCmp
+
+BeginCmp
+TimeStamp = /5505E987;
+Reference = SW4;
+ValeurCmp = RESET;
+IdModule  = NeoClock:BTN_E_Switch_TL1105;
+EndCmp
+
+EndListe
