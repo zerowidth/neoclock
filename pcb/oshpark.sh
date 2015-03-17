@@ -5,7 +5,6 @@ set -e
 base=neoclock
 
 mkdir -p build
-
 cp gerber/$base-F_Cu.gbr build/$base.GTL
 cp gerber/$base-B_Cu.gbr build/$base.GBL
 cp gerber/$base-F_Mask.gbr build/$base.GTS
