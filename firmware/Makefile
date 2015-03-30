@@ -33,6 +33,9 @@ size:	main.elf
 flash:	main.hex
 	$(AVRDUDE) -U flash:w:main.hex:i
 
+check:
+	$(AVRDUDE)
+
 fuse:
 	$(AVRDUDE) $(FUSES)
 
