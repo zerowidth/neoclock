@@ -9,7 +9,8 @@ CLOCK      = 8000000
 PROGRAMMER = -c usbtiny
 OBJECTS    = main.o softuart.o USI_TWI_Master.o
 # 0xe2 for internal 8MHz clock, 0x62 for internal 1MHz:
-FUSES      = -U lfuse:w:0xe2:m -U hfuse:w:0xdf:m # -U efuse:w:0xff:m
+# 0xdf for SPI enabled, 0xdc to add brown-out at 4.3V
+FUSES      = -U lfuse:w:0xe2:m -U hfuse:w:0xdc:m # -U efuse:w:0xff:m
 
 AVRDUDE = avrdude $(PROGRAMMER) -p $(AVR_DEVICE)
 COMPILE = avr-gcc -Wall -MMD -Os -g -flto -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
