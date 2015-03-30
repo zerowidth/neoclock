@@ -12,8 +12,10 @@ OBJECTS    = main.o softuart.o USI_TWI_Master.o
 # 0xdf for SPI enabled, 0xdc to add brown-out at 4.3V
 FUSES      = -U lfuse:w:0xe2:m -U hfuse:w:0xdc:m # -U efuse:w:0xff:m
 
+PIXEL_OFFSET = 37
+
 AVRDUDE = avrdude $(PROGRAMMER) -p $(AVR_DEVICE)
-COMPILE = avr-gcc -Wall -MMD -Os -g -flto -DF_CPU=$(CLOCK) -mmcu=$(DEVICE)
+COMPILE = avr-gcc -Wall -MMD -Os -g -flto -DF_CPU=$(CLOCK) -DPIXEL_OFFSET=$(PIXEL_OFFSET) -mmcu=$(DEVICE)
 
 all:	build size
 

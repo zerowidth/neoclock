@@ -13,7 +13,7 @@
 #include "USI_TWI_Master.h"
 
 #define PIXELS 60
-#define PIXEL_OFFSET 37
+/* #define PIXEL_OFFSET 37 */
 #define PIXEL_PORT PORTA
 #define PIXEL_DDR  DDRA
 #define PIXEL_BIT  PORTA5
